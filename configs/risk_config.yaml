@@ -1,0 +1,86 @@
+# Canonical copy of the binding risk ruleset.
+# The root-level risk_config.yaml is authoritative; this copy exists so the
+# packaged app always has a config path relative to the repo root either way.
+
+system_mode:
+  autonomous_execution: false          # HARD LOCKED — no code path may set this true
+  requires_human_approval: true
+  paper_trading_gate:
+    enabled: true
+    min_paper_trading_days: 28         # 4 weeks minimum before "live-ready" badge shows in UI
+    min_suggestions_tracked: 40        # need enough sample size before trusting hit-rate
+    promote_to_live_ready_if:
+      hit_rate_min: 0.50               # % of suggestions that were directionally correct
+      sharpe_min: 1.0
+      max_drawdown_max_pct: 8
+
+intraday_budget_rules:
+  min_recommended_budget_inr: 2000
+  max_positions_per_day: 3
+  max_allocation_per_stock_pct: 60
+  max_allocation_per_sector_pct: 70
+  min_trade_size_inr: 300
+  cost_awareness:
+    enabled: true
+    estimated_round_trip_cost_pct: 0.35
+    refuse_suggestion_if_expected_edge_pct_below_cost: true
+    show_cost_breakdown_in_ui: true
+  liquidity_filter:
+    min_avg_daily_volume: 500000
+    min_price_inr: 20
+  confidence_gating:
+    min_confidence_to_suggest_buy: 0.55
+    min_confidence_to_suggest_strong_buy: 0.70
+    always_show_confidence_score: true
+    always_show_plain_language_rationale: true
+  circuit_awareness:
+    respect_exchange_price_bands: true
+    flag_if_stock_near_upper_lower_circuit: true
+
+suggestion_schedule:
+  pre_market:
+    time_ist: "09:00"
+    purpose: "Overnight news/gap scan, today's watchlist + budget allocation plan"
+  midday_check:
+    time_ist: "12:30"
+    purpose: "Re-evaluate open ideas against actual intraday movement, suggest exit/hold/add"
+  pre_close:
+    time_ist: "15:00"
+    purpose: "Suggest close-out of intraday ideas before 15:30, avoid unplanned overnight exposure"
+  end_of_day_summary:
+    time_ist: "15:45"
+    purpose: "Report what was actually suggested vs what happened, log to paper-trading track record"
+
+circuit_breakers:
+  daily_loss_limit_pct_of_budget: 5
+  weekly_loss_limit_pct_of_capital: 10
+  consecutive_losing_days_flag: 3
+  max_drawdown_pause_pct: 15
+
+mutual_fund_rules:
+  rebalance_frequency: "monthly"
+  category_allocation_bands:
+    large_cap_pct: [30, 50]
+    mid_cap_pct: [15, 30]
+    debt_pct: [15, 30]
+    gold_or_other_pct: [0, 10]
+  tax_awareness:
+    respect_equity_ltcg_holding_period_days: 365
+    flag_short_term_redemption_tax_hit: true
+  sip_vs_lumpsum:
+    default_mode: "sip"
+  suggestion_only: true
+
+model_governance:
+  overfitting_check:
+    flag_if_backtest_sharpe_exceeds_paper_sharpe_by: 2.0x
+  naive_baseline_comparison_required: true
+  always_log_rationale: true
+  always_log_confidence: true
+  never_hide_a_losing_streak: true
+  suggestion_expiry_minutes: 15
+
+hard_locks:
+  - "No order-placement API call may be triggered by model output without an explicit user click/confirm in the UI."
+  - "Every suggestion card must show: action, quantity/amount, confidence %, plain-language reason, estimated cost, and a naive-baseline comparison."
+  - "If live data feed is stale/disconnected, suspend new suggestions and show a clear 'data stale' banner instead of guessing."

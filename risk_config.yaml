@@ -1,0 +1,107 @@
+# ============================================================
+# RISK MANAGEMENT CONFIG — Advisory-Only Trading System
+# This system NEVER places orders automatically. Every rule
+# here governs what the model is allowed to SUGGEST to the
+# human, and how it must flag/refuse when conditions are bad.
+# ============================================================
+
+system_mode:
+  autonomous_execution: false          # HARD LOCKED — no code path may set this true
+  requires_human_approval: true
+  paper_trading_gate:
+    enabled: true
+    min_paper_trading_days: 28         # 4 weeks minimum before "live-ready" badge shows in UI
+    min_suggestions_tracked: 40        # need enough sample size before trusting hit-rate
+    promote_to_live_ready_if:
+      hit_rate_min: 0.50               # % of suggestions that were directionally correct
+      sharpe_min: 1.0
+      max_drawdown_max_pct: 8
+
+# ------------------------------------------------------------
+# INTRADAY EQUITY BUDGET ALLOCATION (the "₹1000 today" mode)
+# ------------------------------------------------------------
+intraday_budget_rules:
+  min_recommended_budget_inr: 2000     # below this, cost-drag warning shown by default
+  max_positions_per_day: 3             # forces concentration, avoids fee death by 1000 cuts
+  max_allocation_per_stock_pct: 60     # no single suggestion can eat the whole budget
+  max_allocation_per_sector_pct: 70
+  min_trade_size_inr: 300              # below this, brokerage/STT usually dominates — refuse to suggest
+  cost_awareness:
+    enabled: true
+    estimated_round_trip_cost_pct: 0.35   # brokerage + STT + slippage estimate, config per broker
+    refuse_suggestion_if_expected_edge_pct_below_cost: true
+    show_cost_breakdown_in_ui: true
+  liquidity_filter:
+    min_avg_daily_volume: 500000       # shares/day — avoid illiquid names where a ₹1000 order moves the price
+    min_price_inr: 20                  # avoid penny-stock noise
+  confidence_gating:
+    min_confidence_to_suggest_buy: 0.55
+    min_confidence_to_suggest_strong_buy: 0.70
+    always_show_confidence_score: true
+    always_show_plain_language_rationale: true
+  circuit_awareness:
+    respect_exchange_price_bands: true
+    flag_if_stock_near_upper_lower_circuit: true
+
+# ------------------------------------------------------------
+# CHECK-IN CADENCE (day-start / midday / day-end suggestions)
+# ------------------------------------------------------------
+suggestion_schedule:
+  pre_market:
+    time_ist: "09:00"
+    purpose: "Overnight news/gap scan, today's watchlist + budget allocation plan"
+  midday_check:
+    time_ist: "12:30"
+    purpose: "Re-evaluate open ideas against actual intraday movement, suggest exit/hold/add"
+  pre_close:
+    time_ist: "15:00"
+    purpose: "Suggest close-out of intraday ideas before 15:30, avoid unplanned overnight exposure"
+  end_of_day_summary:
+    time_ist: "15:45"
+    purpose: "Report what was actually suggested vs what happened, log to paper-trading track record"
+
+# ------------------------------------------------------------
+# DAILY / SYSTEM-WIDE CIRCUIT BREAKERS (advisory versions)
+# ------------------------------------------------------------
+circuit_breakers:
+  daily_loss_limit_pct_of_budget: 5     # if paper/live P&L for the day hits -5%, system stops suggesting NEW entries, shows only exit advice
+  weekly_loss_limit_pct_of_capital: 10  # triggers a mandatory "cool-off" banner in UI, suggestions paused pending user acknowledgement
+  consecutive_losing_days_flag: 3       # after 3 red days in a row, UI surfaces a model-confidence recalibration warning
+  max_drawdown_pause_pct: 15            # hard pause on new suggestions, requires manual reset
+
+# ------------------------------------------------------------
+# MUTUAL FUND SLEEVE (longer horizon, separate rules)
+# ------------------------------------------------------------
+mutual_fund_rules:
+  rebalance_frequency: "monthly"
+  category_allocation_bands:
+    large_cap_pct: [30, 50]
+    mid_cap_pct: [15, 30]
+    debt_pct: [15, 30]
+    gold_or_other_pct: [0, 10]
+  tax_awareness:
+    respect_equity_ltcg_holding_period_days: 365   # don't suggest redemptions that trigger avoidable STCG
+    flag_short_term_redemption_tax_hit: true
+  sip_vs_lumpsum:
+    default_mode: "sip"                # SIP suggestions are lower-risk defaults; lumpsum flagged as higher-conviction/higher-risk
+  suggestion_only: true                 # same human-in-the-loop rule as equities — no auto-redemption/purchase
+
+# ------------------------------------------------------------
+# MODEL VALIDATION / HONESTY RULES
+# ------------------------------------------------------------
+model_governance:
+  overfitting_check:
+    flag_if_backtest_sharpe_exceeds_paper_sharpe_by: 2.0x
+  naive_baseline_comparison_required: true   # every recommendation stream must show vs. "just held Nifty 50" or "did nothing"
+  always_log_rationale: true
+  always_log_confidence: true
+  never_hide_a_losing_streak: true           # UI must show real accuracy history, not just curated wins
+  suggestion_expiry_minutes: 15              # a "buy" suggestion older than this must be re-validated against fresh data before shown as actionable
+
+# ------------------------------------------------------------
+# HARD SYSTEM LOCKS — do not remove
+# ------------------------------------------------------------
+hard_locks:
+  - "No order-placement API call may be triggered by model output without an explicit user click/confirm in the UI."
+  - "Every suggestion card must show: action, quantity/amount, confidence %, plain-language reason, estimated cost, and a naive-baseline comparison."
+  - "If live data feed is stale/disconnected, suspend new suggestions and show a clear 'data stale' banner instead of guessing."

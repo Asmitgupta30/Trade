@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indian Markets Trading Advisor — Advisory Only</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css?v=20261024">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-title">Trading Advisor</span>
+      <span class="brand-sub">NSE / Nifty Universe</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="lock-badge" title="Hard-locked advisory system: cannot place orders">🔒 Advisory Only</span>
+    <div id="market-phase-badge" class="phase-badge">Market Check…</div>
+    <div id="feed-pill" class="pill" role="status">connecting…</div>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Trading Sections">
+  <button class="tab active" data-view="today" role="tab" aria-selected="true">
+    <span class="tab-icon">🎯</span> Trade Ideas
+  </button>
+  <button class="tab" data-view="playbook" role="tab">
+    <span class="tab-icon">📖</span> Market Playbook
+  </button>
+  <button class="tab" data-view="mf" role="tab">
+    <span class="tab-icon">🏦</span> Mutual Funds
+  </button>
+  <button class="tab" data-view="track" role="tab">
+    <span class="tab-icon">📊</span> Track Record
+  </button>
+  <button class="tab" data-view="pulse" role="tab">
+    <span class="tab-icon">💓</span> Market Health
+  </button>
+  <button class="tab" data-view="model" role="tab">
+    <span class="tab-icon">🧠</span> Brain
+  </button>
+</nav>
+
+<main>
+  <!-- ================= TODAY / TRADE IDEAS ================= -->
+  <section id="view-today" class="view active" aria-label="Trade Ideas">
+    <div id="banners"></div>
+
+    <div class="card hero-card">
+      <div class="hero-header">
+        <div>
+          <h2>Indian Market Trade Planner</h2>
+          <p class="muted">Intraday, Swing VCP, Momentum Bursts, and Quality Dividend Pullbacks across the NSE universe. Sized to your exact risk budget.</p>
+        </div>
+        <div class="risk-badge-box">
+          <span class="risk-label">Risk Model</span>
+          <span class="risk-val">1R Fixed Risk / Trade</span>
+        </div>
+      </div>
+
+      <div class="controls-grid">
+        <div class="control-group">
+          <label for="budget">Trading Capital (₹)</label>
+          <div class="input-with-presets">
+            <input type="number" id="budget" value="50000" min="500" step="5000">
+            <div class="preset-chips">
+              <button type="button" class="chip" data-val="10000">10k</button>
+              <button type="button" class="chip" data-val="25000">25k</button>
+              <button type="button" class="chip active" data-val="50000">50k</button>
+              <button type="button" class="chip" data-val="100000">1L</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="risk-pct">Risk Budget per Trade (%)</label>
+          <select id="risk-pct">
+            <option value="0.5">0.5% (Conservative — ₹250 on ₹50k)</option>
+            <option value="1.0" selected>1.0% (Standard — ₹500 on ₹50k)</option>
+            <option value="1.5">1.5% (Moderate — ₹750 on ₹50k)</option>
+            <option value="2.0">2.0% (Aggressive — ₹1,000 on ₹50k)</option>
+          </select>
+        </div>
+
+        <div class="control-group action-group">
+          <button id="get-suggestions" class="primary big-btn">
+            <span class="btn-text">Generate Trade Plans</span>
+            <span class="btn-spinner" style="display:none">⏳</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Strategy Filter Bar -->
+      <div class="strategy-filter-container">
+        <span class="filter-title">Strategy Style:</span>
+        <div class="strategy-pills" id="strategy-filter">
+          <button class="strat-pill active" data-filter="all">All Setups <span class="strat-count" id="count-all">…</span></button>
+          <button class="strat-pill" data-filter="intraday">⚡ Intraday ML <span class="strat-count" id="count-intraday">…</span></button>
+          <button class="strat-pill" data-filter="swing_vcp">📈 Swing VCP <span class="strat-count" id="count-swing_vcp">…</span></button>
+          <button class="strat-pill" data-filter="momentum_burst">🚀 4% Momentum Burst <span class="strat-count" id="count-momentum_burst">…</span></button>
+          <button class="strat-pill" data-filter="exhaustion_hammer">🔨 Exhaustion Hammer <span class="strat-count" id="count-exhaustion_hammer">…</span></button>
+          <button class="strat-pill" data-filter="dividend_pullback">💰 Dividend Pullback <span class="strat-count" id="count-dividend_pullback">…</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Suggestions Render Target -->
+    <div id="suggestion-list">
+      <div class="card empty-state">
+        <div class="empty-icon">📊</div>
+        <h3>Ready to scan NSE universe</h3>
+        <p class="muted">Click "Generate Trade Plans" to scan 90+ liquid NSE stocks for setups across Intraday, Minervini VCP, Momentum Bursts, and Dividend Pullbacks.</p>
+      </div>
+    </div>
+
+    <!-- Month's stock patterns & Scheduled check-ins -->
+    <div class="grid-2">
+      <div class="card soft">
+        <div class="card-head-row">
+          <h3>📈 Monthly Patterns & Breadth</h3>
+          <span class="tag-subtle">Feature Signals</span>
+        </div>
+        <p class="muted small">Top movers, consistency (% up days), and distance from 52-week high.</p>
+        <div id="patterns-monthly"><p class="muted small">Loading patterns…</p></div>
+      </div>
+
+      <div class="card soft">
+        <div class="card-head-row">
+          <h3>🕒 Daily Scheduled Check-Ins</h3>
+          <span class="tag-subtle">Automated Rhythm</span>
+        </div>
+        <p class="muted small">Automated checkpoints throughout market hours (9:00 AM, 12:30 PM, 3:00 PM, 3:45 PM).</p>
+        <div id="checkins"><p class="muted small">Loading check-in schedule…</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PLAYBOOK ================= -->
+  <section id="view-playbook" class="view" aria-label="Indian Market Playbook">
+    <div class="card">
+      <h2>📚 Indian Market Trading Playbook</h2>
+      <p class="muted">Comprehensive reference for every trading style achievable in Indian equities (NSE), their entry mechanics, risk parameters, and order management in Indian brokers (Zerodha, Groww, AngelOne).</p>
+    </div>
+
+    <div id="playbook-catalog" class="catalog-grid">
+      <p class="muted">Loading strategy playbook…</p>
+    </div>
+  </section>
+
+  <!-- ================= MUTUAL FUNDS ================= -->
+  <section id="view-mf" class="view" aria-label="Mutual funds">
+    <div class="card hero-card">
+      <div class="card-head-row">
+        <div>
+          <h2>🏦 Asset Allocation & Mutual Fund Rebalancing</h2>
+          <p class="muted">Disciplined quarterly rebalancing across Large Cap, Mid Cap, Debt, and Sovereign Gold Bonds (SGB/Gold ETF).</p>
+        </div>
+      </div>
+      <div class="controls">
+        <label>New Capital to Deploy (₹)
+          <input type="number" id="mf-new-money" value="10000" min="0" step="1000">
+        </label>
+        <button id="mf-plan" class="primary big-btn">Recommend Allocation</button>
+      </div>
+    </div>
+
+    <div id="mf-output"></div>
+
+    <div class="card soft">
+      <h3>📊 Category Trailing Performance</h3>
+      <p class="muted small">Real NAV trajectory by category across Indian mutual fund benchmarks.</p>
+      <div id="mf-patterns"></div>
+    </div>
+  </section>
+
+  <!-- ================= TRACK RECORD ================= -->
+  <section id="view-track" class="view" aria-label="How it's doing">
+    <div id="gate-card" class="card"></div>
+    <div id="score-cards"></div>
+
+    <h2 class="section-title">Cumulative Performance (Hypothetical Paper Track)</h2>
+    <p class="muted small">Net return % after deducting 0.35% round-trip trading costs (STT, brokerage, exchange fees).</p>
+    <div class="card chart-card">
+      <div id="chart-equity" class="chart" role="img" aria-label="Growth over time"></div>
+      <details class="table-fallback"><summary>Show numbers as a table</summary><div id="table-equity"></div></details>
+    </div>
+
+    <h2 class="section-title">Hit Rate Over Time (Directional Win Rate)</h2>
+    <p class="muted small">Baseline 50% dashed line represents coin-toss benchmark. Target is > 55% consistent hit rate.</p>
+    <div class="card chart-card">
+      <div id="chart-hitrate" class="chart" role="img" aria-label="Correctness over time"></div>
+      <details class="table-fallback"><summary>Show numbers as a table</summary><div id="table-hitrate"></div></details>
+    </div>
+
+    <h2 class="section-title">Model Confidence Calibration Scatter</h2>
+    <p class="muted small">Each dot is one resolved suggestion. Higher confidence should correspond to higher average realized return.</p>
+    <div class="card chart-card">
+      <div id="chart-scatter" class="chart" role="img" aria-label="Confidence versus result"></div>
+      <details class="table-fallback"><summary>Show numbers as a table</summary><div id="table-outcomes"></div></details>
+    </div>
+  </section>
+
+  <!-- ================= PULSE ================= -->
+  <section id="view-pulse" class="view" aria-label="System health">
+    <div id="pulse-cards"></div>
+  </section>
+
+  <!-- ================= MODEL HISTORY ================= -->
+  <section id="view-model" class="view" aria-label="Model history">
+    <div class="card soft">
+      <h3>🧠 Champion vs. Challenger Retraining Log</h3>
+      <p class="muted small">Every week the model attempts self-improvement against an out-of-sample test. It must beat the champion on Hit Rate, Sharpe, and Loss Drawdown to earn promotion.</p>
+    </div>
+    <div id="model-output"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot-content">
+    <p><strong>Strict Advisory Lock:</strong> This system only suggests trade ideas and calculates risk-budgeted sizing. It never connects to an order execution API. All trades must be reviewed and manually placed in your broker app.</p>
+    <p class="muted small">Data provided for NSE equities. Past performance is not indicative of future returns.</p>
+  </div>
+</footer>
+
+<div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+<script src="/static/app.js?v=20261024"></script>
+</body>
+</html>

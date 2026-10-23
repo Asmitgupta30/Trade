@@ -1,0 +1,52 @@
+# --- legacy artifacts ---
+main.go
+go.mod
+opencode.json
+
+# --- python runtime ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# --- credentials & environment ---
+.env
+
+# --- database & local sqlite state ---
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+
+# --- temporary scratch scripts & test outputs in var ---
+var/*.py
+var/*.txt
+var/*.ps1
+var/*.sh
+var/*.tmp
+
+# --- heavy data caches, mf downloads & raw barstores ---
+var/barstore/*
+!var/barstore/.gitkeep
+var/cache/ohlcv/*
+var/cache/adjusted_bhav/*
+var/cache/mf/*
+var/logs/*
+!var/logs/.gitkeep
+var/status/*
+!var/status/.gitkeep
+var/reports/*
+!var/reports/.gitkeep
+
+# keep directory scaffolds
+!var/**/.gitkeep
+
+# --- frontend build artifacts ---
+frontend/node_modules/
+frontend/dist/
