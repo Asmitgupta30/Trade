@@ -1,4 +1,4 @@
-# 🦅 AuraQuant: Institutional Quantitative Research Platform & Market Risk Engine
+# QuantGame: Institutional Quantitative Research Platform & Market Risk Engine
 
 [![Architecture](https://img.shields.io/badge/Architecture-Modular%20Quant%20Pipeline-blue.svg?style=flat-square&logo=diagramsdotnet)](configs/risk_config.yaml)
 [![Python Version](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-10b981.svg?style=flat-square&logo=python)](requirements.txt)
