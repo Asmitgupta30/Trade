@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indian Markets Trading Advisor — Advisory Only</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/styles.css?v=20261103_fullscreen">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-title">Trading Advisor</span>
+      <span class="brand-sub">NSE Institutional Terminal</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button id="theme-toggle" class="theme-btn" type="button" aria-label="Toggle Dark/Light Mode" title="Toggle Theme">
+      <svg class="theme-svg sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="theme-svg moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <span class="lock-badge" title="Hard-locked advisory system: cannot place orders">
+      <svg class="badge-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Advisory Only
+    </span>
+    <div id="market-phase-badge" class="phase-badge">Market Check…</div>
+    <div id="feed-pill" class="pill" role="status">connecting…</div>
+  </div>
+</header>
+
+<!-- Personalization & Trading Persona Bar (UI UX Pro Max) -->
+<div class="personalization-bar" id="personalization-bar">
+  <div class="persona-group">
+    <span class="persona-label">Trading Profile:</span>
+    <button type="button" class="persona-pill active" data-persona="intraday" data-capital="50000" data-risk="1.0" data-tab="liveintraday">₹50k Intraday (5x MIS)</button>
+    <button type="button" class="persona-pill" data-persona="swing" data-capital="100000" data-risk="1.5" data-tab="today">₹1L Swing Breakout</button>
+    <button type="button" class="persona-pill" data-persona="wealth" data-capital="500000" data-risk="0.5" data-tab="mf">₹5L Wealth Builder (SIP / MF)</button>
+  </div>
+  <div class="persona-dials">
+    <div class="accent-picker" title="Terminal Accent Color">
+      <span class="persona-label">Theme:</span>
+      <div class="accent-dot emerald active" data-accent="emerald" title="Emerald Terminal (#22C55E)"></div>
+      <div class="accent-dot sky" data-accent="sky" title="Cyber Sky (#38BDF8)"></div>
+      <div class="accent-dot amber" data-accent="amber" title="Amber Gold (#F59E0B)"></div>
+    </div>
+    <span id="persona-summary" style="font-family:var(--font-mono); color:var(--muted-fg);">1R Cap: ₹500 (1.0%)</span>
+  </div>
+</div>
+
+<nav class="tabs" role="tablist" aria-label="Trading Sections">
+  <button class="tab active" data-view="today" role="tab" aria-selected="true">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+    Trade Ideas
+  </button>
+  <button class="tab" data-view="orderblock" role="tab">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    Order Blocks
+  </button>
+  <button class="tab" data-view="liveintraday" role="tab">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Live Intraday
+  </button>
+  <button class="tab" data-view="simulator" role="tab">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Time Simulator
+  </button>
+  <button class="tab" data-view="valuation" role="tab">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+    Valuation &amp; P/E
+  </button>
+  <button class="tab" data-view="playbook" role="tab">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    Playbook
+  </button>
+  <button class="tab" data-view="mf" role="tab">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v4"/><path d="M12 14v4"/><path d="M16 14v4"/></svg>
+    Mutual Funds
+  </button>
+  <button class="tab" data-view="track" role="tab">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Track Record
+  </button>
+  <button class="tab" data-view="pulse" role="tab">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    Market Health
+  </button>
+  <button class="tab" data-view="model" role="tab">
+    <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+    Brain
+  </button>
+</nav>
+
+<main>
+  <!-- ================= TODAY / TRADE IDEAS ================= -->
+  <section id="view-today" class="view active" aria-label="Trade Ideas">
+    <div id="banners"></div>
+
+    <div class="card hero-card">
+      <div class="hero-header">
+        <div>
+          <h2>Indian Market Trade Planner</h2>
+          <p class="muted">Intraday, Swing VCP, Momentum Bursts, and Quality Dividend Pullbacks across the NSE universe. Sized to your exact risk budget.</p>
+        </div>
+        <div class="risk-badge-box">
+          <span class="risk-label">Risk Model</span>
+          <span class="risk-val">1R Fixed Risk / Trade</span>
+        </div>
+      </div>
+
+      <div class="controls-grid">
+        <div class="control-group">
+          <label for="budget">Trading Capital (₹)</label>
+          <div class="input-with-presets">
+            <input type="number" id="budget" value="50000" min="500" step="5000">
+            <div class="preset-chips">
+              <button type="button" class="chip" data-val="10000">10k</button>
+              <button type="button" class="chip" data-val="25000">25k</button>
+              <button type="button" class="chip active" data-val="50000">50k</button>
+              <button type="button" class="chip" data-val="100000">1L</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="risk-pct">Risk Budget per Trade (%)</label>
+          <select id="risk-pct">
+            <option value="0.5">0.5% (Conservative — ₹250 on ₹50k)</option>
+            <option value="1.0" selected>1.0% (Standard — ₹500 on ₹50k)</option>
+            <option value="1.5">1.5% (Moderate — ₹750 on ₹50k)</option>
+            <option value="2.0">2.0% (Aggressive — ₹1,000 on ₹50k)</option>
+          </select>
+        </div>
+
+        <div class="control-group action-group">
+          <button id="get-suggestions" class="primary big-btn">
+            <span class="btn-text">Generate Trade Plans</span>
+            <span class="btn-spinner" style="display:none">
+              <svg class="spin-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Strategy Filter Bar -->
+      <div class="strategy-filter-container">
+        <span class="filter-title">Strategy Style:</span>
+        <div class="strategy-pills" id="strategy-filter">
+          <button class="strat-pill active" data-filter="all">All Setups <span class="strat-count" id="count-all">…</span></button>
+          <button class="strat-pill" data-filter="order_block">
+            <svg class="pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            Order Blocks <span class="strat-count" id="count-order_block">…</span>
+          </button>
+          <button class="strat-pill" data-filter="intraday">
+            <svg class="pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Intraday ML <span class="strat-count" id="count-intraday">…</span>
+          </button>
+          <button class="strat-pill" data-filter="swing_vcp">
+            <svg class="pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            Swing VCP <span class="strat-count" id="count-swing_vcp">…</span>
+          </button>
+          <button class="strat-pill" data-filter="momentum_burst">
+            <svg class="pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+            Momentum Burst <span class="strat-count" id="count-momentum_burst">…</span>
+          </button>
+          <button class="strat-pill" data-filter="exhaustion_hammer">
+            <svg class="pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12l-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9"/><path d="M17.64 4.36a9 9 0 0 1 0 12.73l-1.42-1.42a7 7 0 0 0 0-9.9z"/></svg>
+            Exhaustion Hammer <span class="strat-count" id="count-exhaustion_hammer">…</span>
+          </button>
+          <button class="strat-pill" data-filter="dividend_pullback">
+            <svg class="pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Dividend Pullback <span class="strat-count" id="count-dividend_pullback">…</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Market Overview & Indices -->
+    <div class="market-overview-container" id="market-overview-strip">
+      <div class="market-overview-card" id="card-nifty">
+        <div class="moc-header">
+          <span class="moc-title">NIFTY 50 INDEX</span>
+          <span class="moc-badge" id="nifty-regime">NSE Benchmark</span>
+        </div>
+        <div class="moc-price-row">
+          <span class="moc-price" id="nifty-price">Loading…</span>
+          <span class="moc-change" id="nifty-chg"></span>
+        </div>
+        <div class="moc-chart" id="nifty-sparkline"></div>
+      </div>
+
+      <div class="market-overview-card" id="card-vix">
+        <div class="moc-header">
+          <span class="moc-title">INDIA VIX</span>
+          <span class="moc-badge" id="vix-regime">Market Volatility</span>
+        </div>
+        <div class="moc-price-row">
+          <span class="moc-price" id="vix-price">Loading…</span>
+          <span class="moc-sub" id="vix-status">Normal Range</span>
+        </div>
+        <div class="moc-chart" id="vix-sparkline"></div>
+      </div>
+
+      <div class="market-overview-card market-timing-card">
+        <div class="moc-header">
+          <span class="moc-title">NSE EXCHANGE SESSION</span>
+          <span class="moc-badge" id="exchange-badge">Market Check</span>
+        </div>
+        <div class="moc-timing-info">
+          <div class="timing-row">
+            <span class="timing-k">Trading Hours:</span>
+            <span class="timing-v">09:15 – 15:30 IST</span>
+          </div>
+          <div class="timing-row">
+            <span class="timing-k">Intraday Square-Off:</span>
+            <span class="timing-v highlight">15:15 IST Reminder</span>
+          </div>
+          <div class="timing-row">
+            <span class="timing-k">Execution Mode:</span>
+            <span class="timing-v good">Manual in Broker App</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Suggestions Render Target -->
+    <div id="suggestion-list">
+      <div class="card empty-state">
+        <div class="empty-icon">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--ink-secondary)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+        </div>
+        <h3>Ready to scan NSE universe</h3>
+        <p class="muted">Click "Generate Trade Plans" to scan 90+ liquid NSE stocks for setups across Intraday, Minervini VCP, Momentum Bursts, and Dividend Pullbacks.</p>
+      </div>
+    </div>
+
+    <!-- Month's stock patterns & Scheduled check-ins -->
+    <div class="grid-2">
+      <div class="card soft">
+        <div class="card-head-row">
+          <h3>Monthly Patterns & Breadth</h3>
+          <span class="tag-subtle">Feature Signals</span>
+        </div>
+        <p class="muted small">Top movers, consistency (% up days), and distance from 52-week high.</p>
+        <div id="patterns-monthly"><p class="muted small">Loading patterns…</p></div>
+      </div>
+
+      <div class="card soft">
+        <div class="card-head-row">
+          <h3>Daily Scheduled Check-Ins</h3>
+          <span class="tag-subtle">Automated Rhythm</span>
+        </div>
+        <p class="muted small">Automated checkpoints throughout market hours (9:00 AM, 12:30 PM, 3:00 PM, 3:45 PM).</p>
+        <div id="checkins"><p class="muted small">Loading check-in schedule…</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ORDER BLOCKS & LIQUIDITY ================= -->
+  <section id="view-orderblock" class="view" aria-label="Institutional Order Blocks">
+    <div class="card hero-card">
+      <div class="hero-header">
+        <div>
+          <h2>Institutional Order Blocks &amp; Liquidity</h2>
+          <p class="muted">Real-time Break of Structure (BOS), institutional demand/supply footprint zones, and waiting order retests across the NSE F&amp;O universe.</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn primary" id="refresh-orderblock-btn">
+            <span class="btn-spinner" id="ob-spinner" style="display:none;"></span>
+            <svg class="pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Scan Order Blocks</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Market Picture Strip -->
+      <div class="ob-market-picture-box" id="ob-market-picture">
+        <div class="ob-mp-loading">Scanning 200+ F&amp;O stocks for institutional zones…</div>
+      </div>
+    </div>
+
+    <!-- Dual Board: Bullish Demand vs Bearish Supply -->
+    <div class="ob-dual-grid">
+      <div class="ob-board-col ob-bullish-col">
+        <div class="ob-board-header">
+          <div class="ob-board-title">
+            <span class="ob-dot green"></span>
+            <h3>Bullish Order Blocks (Demand Zones)</h3>
+          </div>
+          <span class="ob-board-badge" id="ob-bullish-count">0 Setups</span>
+        </div>
+        <p class="muted small" style="margin-bottom:12px">Last red candle before upward structure break (BOS). Buy pullbacks into institutional demand.</p>
+        <div class="ob-board-list" id="ob-bullish-list">
+          <p class="muted small">Loading bullish order blocks…</p>
+        </div>
+      </div>
+
+      <div class="ob-board-col ob-bearish-col">
+        <div class="ob-board-header">
+          <div class="ob-board-title">
+            <span class="ob-dot red"></span>
+            <h3>Bearish Order Blocks (Supply Zones)</h3>
+          </div>
+          <span class="ob-board-badge" id="ob-bearish-count">0 Setups</span>
+        </div>
+        <p class="muted small" style="margin-bottom:12px">Last green candle before downward structure break (BOS). Sell rallies into institutional supply.</p>
+        <div class="ob-board-list" id="ob-bearish-list">
+          <p class="muted small">Loading bearish order blocks…</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= LIVE INTRADAY CAPITAL MAXIMIZER ================= -->
+  <section id="view-liveintraday" class="view" aria-label="Live Intraday Scalper">
+    <div class="card hero-card">
+      <div class="hero-header">
+        <div>
+          <h2>Live Intraday Scalper &amp; Capital Maximizer</h2>
+          <p class="muted">Real-time VWAP Expansion, 15-Min Opening Range Breakouts (ORB), and 5x MIS Leverage Sizing across liquid NSE equities.</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn primary" id="refresh-liveintraday-btn">
+            <span class="btn-spinner" id="intraday-spinner" style="display:none;"></span>
+            <svg class="pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Scan Live Intraday</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Session HUD Strip -->
+      <div class="intraday-hud-strip" id="intraday-hud">
+        <div class="hud-item">
+          <span class="hud-k">Intraday Window</span>
+          <span class="hud-v" id="hud-session-phase">Scanning…</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-k">Session Auto-Exit</span>
+          <span class="hud-v font-mono" id="hud-squareoff-timer">15:15 IST</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-k">Capital Sizing</span>
+          <span class="hud-v font-mono highlight" id="hud-leverage-mode">5x MIS Margin</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-k">NSE Intraday Breadth</span>
+          <span class="hud-v font-mono" id="hud-breadth">…</span>
+        </div>
+      </div>
+      <div class="intraday-guidance-box" id="intraday-guidance">
+        <p class="muted small" style="margin:0;">Loading intraday session telemetry…</p>
+      </div>
+    </div>
+
+    <!-- Dual Board: Bullish Breakouts vs Bearish Shorts -->
+    <div class="intraday-dual-grid">
+      <div class="intraday-board-col intraday-long-col">
+        <div class="intraday-board-header">
+          <div class="intraday-board-title">
+            <span class="ob-dot green"></span>
+            <h3>Bullish Momentum Scalps (Long)</h3>
+          </div>
+          <span class="ob-board-badge" id="intraday-long-count">0 Setups</span>
+        </div>
+        <p class="muted small" style="margin-bottom:12px">VWAP expansion &amp; ORB breakouts with positive relative volume velocity.</p>
+        <div class="intraday-board-list" id="intraday-long-list">
+          <p class="muted small">Click "Scan Live Intraday" to scan current price action.</p>
+        </div>
+      </div>
+
+      <div class="intraday-board-col intraday-short-col">
+        <div class="intraday-board-header">
+          <div class="intraday-board-title">
+            <span class="ob-dot red"></span>
+            <h3>Bearish Breakdown Scalps (MIS Short)</h3>
+          </div>
+          <span class="ob-board-badge" id="intraday-short-count">0 Setups</span>
+        </div>
+        <p class="muted small" style="margin-bottom:12px">VWAP rejections &amp; support breakdowns for intraday short capital gains.</p>
+        <div class="intraday-board-list" id="intraday-short-list">
+          <p class="muted small">Click "Scan Live Intraday" to scan current price action.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Autonomous Bi-Directional Desk Terminal & Track Record -->
+    <div class="card" style="margin-top:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <div>
+          <h3 style="margin:0 0 4px 0;">Autonomous Bi-Directional Desk Terminal</h3>
+          <p class="muted small" style="margin:0;">Independent market-hours execution across Long and Short domains. Real-time breakeven ratchets, time-stall recycling, and circuit-breaker protection.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn sm" id="refresh-desk-btn">Refresh Terminal</button>
+        </div>
+      </div>
+
+      <div class="intraday-hud-strip" style="margin-bottom:16px;">
+        <div class="hud-item">
+          <span class="hud-k">Session Phase</span>
+          <span class="hud-v" id="desk-hud-phase">Active</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-k">Net P&amp;L Today</span>
+          <span class="hud-v font-mono highlight" id="desk-hud-pnl">+₹0.00</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-k">Hit Rate (Long / Short)</span>
+          <span class="hud-v font-mono" id="desk-hud-hitrate">—</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-k">Daily Loss Circuit Guard</span>
+          <span class="hud-v font-mono" id="desk-hud-guard">₹2,000 Cap (4%)</span>
+        </div>
+      </div>
+
+      <div id="desk-terminal-content">
+        <p class="muted small">Loading terminal state…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TIME MACHINE & MULTI-SCENARIO SIMULATOR ================= -->
+  <section id="view-simulator" class="view" aria-label="Forward Time Machine & Scenario Simulator">
+    <div class="card hero-card">
+      <div class="hero-header">
+        <div>
+          <h2>Forward Time Machine &amp; Multi-Scenario Simulator</h2>
+          <p class="muted">Forward scenario simulation with Monte Carlo path modeling. Simulates 4 branching forward market scenarios, 1,000 Monte Carlo paths, and tracks institutional distribution days across the NSE universe.</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <div class="sim-horizon-toggle" id="sim-horizon-group">
+            <button type="button" class="btn sm" data-horizon="5">1 Week</button>
+            <button type="button" class="btn sm active" data-horizon="21">1 Month</button>
+            <button type="button" class="btn sm" data-horizon="63">3 Months</button>
+          </div>
+          <button class="btn primary" id="refresh-sim-btn">
+            <span class="btn-spinner" id="sim-spinner" style="display:none;"></span>
+            <svg class="pill-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Run Simulation</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Simulation HUD -->
+      <div class="intraday-hud-strip" id="sim-hud">
+        <div class="hud-item">
+          <span class="hud-k">Market Regime</span>
+          <span class="hud-v" id="sim-hud-regime">Scanning…</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-k">Institutional Selling</span>
+          <span class="hud-v font-mono" id="sim-hud-dist">…</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-k">Probability of Profit</span>
+          <span class="hud-v font-mono highlight" id="sim-hud-pop">…</span>
+        </div>
+        <div class="hud-item">
+          <span class="hud-k">Recommended Exposure</span>
+          <span class="hud-v font-mono" id="sim-hud-exposure">…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Branching Scenarios Grid -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-head-row" style="margin-bottom:12px;">
+        <div>
+          <h3>Branching Forward Market Scenarios</h3>
+          <p class="muted small">1st, 2nd, and 3rd order impacts across all plausible forward market states with regime-calibrated probabilities.</p>
+        </div>
+      </div>
+      <div class="sim-scenarios-grid" id="sim-scenarios-list">
+        <p class="muted small">Loading scenario projections…</p>
+      </div>
+    </div>
+
+    <!-- Monte Carlo Forward Time Cone & Stress-Testing -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-head-row" style="margin-bottom:14px;">
+        <div>
+          <h3>Monte Carlo 1,000 Path Time Simulation</h3>
+          <p class="muted small">Simulated equity distribution under Indian market friction (STT, exchange turnover, slippage) across the selected time horizon.</p>
+        </div>
+        <span class="pill" id="sim-horizon-badge">21 Sessions</span>
+      </div>
+
+      <div class="sim-mc-stats-grid" id="sim-mc-stats">
+        <!-- Rendered via JS -->
+      </div>
+
+      <div class="sim-cone-box" id="sim-cone-container" style="margin-top:16px;">
+        <!-- Visual Time Cone / Step Table -->
+      </div>
+    </div>
+
+    <!-- Institutional Distribution Day Audit & Exposure Coaching -->
+    <div class="sim-dual-grid" style="margin-top:20px;">
+      <div class="card">
+        <div class="card-head-row" style="margin-bottom:10px;">
+          <div>
+            <h3>Institutional Distribution Days (Nifty 50)</h3>
+            <p class="muted small">William O'Neil / CANSLIM rolling 25-day institutional top detection.</p>
+          </div>
+          <span class="ob-board-badge" id="sim-dist-badge">0 / 25</span>
+        </div>
+        <div id="sim-dist-content">
+          <p class="muted small">Analyzing institutional footprint…</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head-row" style="margin-bottom:10px;">
+          <div>
+            <h3>Exposure &amp; Portfolio Heat Coach</h3>
+            <p class="muted small">Dynamic capital preservation and position count rules.</p>
+          </div>
+          <span class="pill" id="sim-coach-badge">Optimal</span>
+        </div>
+        <div id="sim-coach-content">
+          <p class="muted small">Calculating exposure limits…</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 3-YEAR HISTORICAL VALUATION & P/E COMPARISON ================= -->
+  <section id="view-valuation" class="view" aria-label="3-Year Historical Valuation Comparison">
+    <div class="card hero-card">
+      <div class="hero-header">
+        <div>
+          <h2>3-Year Historical Valuation &amp; P/E Screener</h2>
+          <p class="muted">Bloomberg Relative Valuation (RV) &amp; Graham Intrinsic Value Engine. Compares each stock's present P/E and P/B multiples against its 3-year historical distribution (Mean &plusmn; &sigma;) to spotlight high-quality stocks that are statistically cheaper than usual.</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <span class="badge" id="val-macro-pill" style="font-size:0.85rem; padding:6px 12px; background:var(--card-bg); border:1px solid var(--border);">Macro News: Loading...</span>
+          <button type="button" class="btn sm" id="val-refresh-btn">&#x21bb; Refresh Data</button>
+        </div>
+      </div>
+
+      <!-- Valuation HUD Summary Stats -->
+      <div class="val-hud-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:12px; margin-top:16px;">
+        <div class="stat-card" style="padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:8px;">
+          <div class="muted small">UNIVERSE AVG P/E</div>
+          <div class="stat-num" id="val-avg-pe" style="font-size:1.6rem; font-weight:700; font-family:var(--font-mono); color:var(--fg); margin-top:4px;">--</div>
+          <div class="small muted" id="val-total-stocks">Analyzed across NSE Universe</div>
+        </div>
+        <div class="stat-card" style="padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:8px;">
+          <div class="muted small">CHEAPER THAN USUAL</div>
+          <div class="stat-num" id="val-cheaper-count" style="font-size:1.6rem; font-weight:700; font-family:var(--font-mono); color:var(--emerald, #10b981); margin-top:4px;">--</div>
+          <div class="small muted">P/E &lt; 3-Year Historical Mean (Z &lt; -0.6)</div>
+        </div>
+        <div class="stat-card" style="padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:8px;">
+          <div class="muted small">DEEP VALUE OPPORTUNITIES</div>
+          <div class="stat-num" id="val-deep-count" style="font-size:1.6rem; font-weight:700; font-family:var(--font-mono); color:#38bdf8; margin-top:4px;">--</div>
+          <div class="small muted">&gt; 1 &sigma; Historical Discount (Z &lt; -1.2)</div>
+        </div>
+        <div class="stat-card" style="padding:14px; background:var(--bg); border:1px solid var(--border); border-radius:8px;">
+          <div class="muted small">MARKET NEWS CATALYSTS</div>
+          <div class="stat-num" id="val-catalysts-count" style="font-size:1.6rem; font-weight:700; font-family:var(--font-mono); color:var(--accent, #f59e0b); margin-top:4px;">--</div>
+          <div class="small muted">Active Pre-Market Sentiment Feeds</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screener Filter Controls -->
+    <div class="card" style="margin-top:14px; padding:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div class="btn-group" id="val-filter-group" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn sm active" data-filter="all">All Stocks</button>
+          <button type="button" class="btn sm" data-filter="cheaper" style="border-color:#10b981; color:#10b981;">&#x2714; Cheaper Than Usual</button>
+          <button type="button" class="btn sm" data-filter="deep_value" style="border-color:#38bdf8; color:#38bdf8;">&#x2605; Deep Value (Z &lt; -1.2)</button>
+          <button type="button" class="btn sm" data-filter="catalyst" style="border-color:#f59e0b; color:#f59e0b;">&#x1f4e2; Positive News Catalysts</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="val-search-input" placeholder="Search Symbol (e.g. TCS, SBIN)..." class="input sm" style="max-width:240px; padding:6px 12px;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Valuation Table -->
+    <div class="card" style="margin-top:14px; padding:0; overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="valuation-table" style="width:100%; border-collapse:collapse; text-align:left;">
+          <thead>
+            <tr style="background:var(--card-bg); border-bottom:1px solid var(--border); font-size:0.8rem; text-transform:uppercase; color:var(--muted-fg);">
+              <th style="padding:12px 16px;">Symbol &amp; Sector</th>
+              <th style="padding:12px 16px; text-align:right;">Price (₹)</th>
+              <th style="padding:12px 16px; text-align:right;">P/E vs 3Y Mean</th>
+              <th style="padding:12px 16px; text-align:right;">Discount %</th>
+              <th style="padding:12px 16px; text-align:center;">Valuation Z-Score</th>
+              <th style="padding:12px 16px; text-align:center;">3Y Percentile</th>
+              <th style="padding:12px 16px; text-align:right;">P/B vs 3Y Mean</th>
+              <th style="padding:12px 16px; text-align:right;">Graham IV (₹)</th>
+              <th style="padding:12px 16px; text-align:right;">Margin of Safety</th>
+              <th style="padding:12px 16px; text-align:center;">News Catalyst</th>
+              <th style="padding:12px 16px; text-align:center;">Recommendation</th>
+            </tr>
+          </thead>
+          <tbody id="valuation-table-body">
+            <tr><td colspan="11" style="padding:30px; text-align:center; color:var(--muted-fg);">Loading 3-year valuation multiples &amp; news catalysts…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Morning News Catalyst Feed Section -->
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0; font-size:1.1rem;">Market News Catalyst Briefing</h3>
+        <span class="small muted" id="news-last-updated">Updated pre-market 09:00 IST</span>
+      </div>
+      <div id="news-catalysts-container" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px;">
+        <p class="muted small">Ingesting financial headlines…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PLAYBOOK ================= -->
+  <section id="view-playbook" class="view" aria-label="Indian Market Playbook">
+    <div class="card">
+      <h2>Indian Market Trading Playbook</h2>
+      <p class="muted">Comprehensive reference for every trading style achievable in Indian equities (NSE), their entry mechanics, risk parameters, and order management in Indian brokers (Zerodha, Groww, AngelOne).</p>
+    </div>
+
+    <div id="playbook-catalog" class="catalog-grid">
+      <p class="muted">Loading strategy playbook…</p>
+    </div>
+  </section>
+
+  <!-- ================= MUTUAL FUNDS & WEALTH COMPOUNDING ================= -->
+  <section id="view-mf" class="view" aria-label="Mutual Funds & Wealth Compounding">
+    <div class="card hero-card">
+      <div class="hero-header">
+        <div>
+          <h2>Mutual Fund Prospect Hub &amp; Wealth Compounding Sleeve</h2>
+          <p class="muted">Curated top-performing 5-star Direct-Growth Indian Mutual Funds with proven alpha over benchmarks. Disciplined quarterly rebalancing across Large Cap, Flexi Cap, Mid Cap, Debt, and Sovereign Gold.</p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <button type="button" class="btn sm" id="scroll-to-sip-calc">SIP Calculator</button>
+          <button type="button" class="btn sm primary" id="refresh-mf-btn">Refresh Prospects</button>
+        </div>
+      </div>
+
+      <!-- Category Allocation Bands Strip -->
+      <div class="mf-hero-strip">
+        <div class="mf-hero-item">
+          <span class="k">Large Cap Target</span>
+          <span class="v">30% – 50%</span>
+        </div>
+        <div class="mf-hero-item">
+          <span class="k">Mid / Small Cap Target</span>
+          <span class="v">20% – 40%</span>
+        </div>
+        <div class="mf-hero-item">
+          <span class="k">Debt / Arbitrage Target</span>
+          <span class="v">10% – 25%</span>
+        </div>
+        <div class="mf-hero-item">
+          <span class="k">Gold &amp; Multi-Asset</span>
+          <span class="v">5% – 15%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive SIP Wealth Simulator & Power of Compounding -->
+    <div class="sip-calc-card" id="sip-calculator-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h3 style="margin:0 0 4px 0;">Interactive SIP Compounding Wealth Simulator</h3>
+          <p class="muted small" style="margin:0;">Project long-term corpus growth at mutual fund historical CAGR with monthly compounding.</p>
+        </div>
+        <span class="pill bull" id="sip-multiplier-badge">2.4x Capital Growth</span>
+      </div>
+
+      <div class="sip-calc-grid">
+        <div class="sip-sliders-pane">
+          <div class="sip-slider-group">
+            <div class="sip-slider-header">
+              <label for="sip-amount-range">Monthly SIP Investment</label>
+              <span class="sip-slider-val" id="sip-amount-display">₹10,000 / mo</span>
+            </div>
+            <input type="range" class="sip-range-input" id="sip-amount-range" min="1000" max="100000" step="1000" value="10000">
+          </div>
+
+          <div class="sip-slider-group">
+            <div class="sip-slider-header">
+              <label for="sip-years-range">Investment Horizon (Years)</label>
+              <span class="sip-slider-val" id="sip-years-display">5 Years</span>
+            </div>
+            <input type="range" class="sip-range-input" id="sip-years-range" min="1" max="25" step="1" value="5">
+          </div>
+
+          <div class="sip-slider-group">
+            <div class="sip-slider-header">
+              <label for="sip-cagr-range">Expected Annual CAGR (%)</label>
+              <span class="sip-slider-val" id="sip-cagr-display">20.0% (Equity Alpha)</span>
+            </div>
+            <input type="range" class="sip-range-input" id="sip-cagr-range" min="8" max="30" step="0.5" value="20.0">
+          </div>
+        </div>
+
+        <div class="sip-kpi-dashboard">
+          <div class="sip-kpi-box">
+            <span class="k">Total Capital Invested</span>
+            <span class="v" id="kpi-sip-invested">₹6,00,000</span>
+            <span class="sip-kpi-sub" id="kpi-sip-months">60 Monthly Installments</span>
+          </div>
+          <div class="sip-kpi-box">
+            <span class="k">Expected Wealth Corpus</span>
+            <span class="v highlight" id="kpi-sip-wealth">₹10,34,542</span>
+            <span class="sip-kpi-sub" style="color:var(--emerald-dark);">Compounded Monthly</span>
+          </div>
+          <div class="sip-kpi-box">
+            <span class="k">Total Wealth Gain</span>
+            <span class="v gain" id="kpi-sip-gain">+₹4,34,542</span>
+            <span class="sip-kpi-sub" id="kpi-sip-roi">+72.4% Net ROI</span>
+          </div>
+          <div class="sip-kpi-box">
+            <span class="k">Wealth Multiplier</span>
+            <span class="v" id="kpi-sip-multiplier" style="color:#FBBF24;">1.72x</span>
+            <span class="sip-kpi-sub">Total Value / Cost</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Curated Top-Performing Prospects Directory -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+      <div>
+        <h3 style="margin:0 0 4px 0;">Top-Performing Mutual Fund Prospects (Direct - Growth)</h3>
+        <p class="muted small" style="margin:0;">Hand-curated 5-star institutional funds with proven 3Y/5Y alpha, low expense ratios (TER), and high AUM stability.</p>
+      </div>
+      <span class="muted small" id="mf-prospects-count">Loading prospects…</span>
+    </div>
+
+    <!-- Category Filter Tabs -->
+    <div class="mf-filter-bar" id="mf-category-filters">
+      <button type="button" class="mf-filter-btn active" data-category="all">All Prospects (11)</button>
+      <button type="button" class="mf-filter-btn" data-category="large_cap">Large Cap Bluechip (3)</button>
+      <button type="button" class="mf-filter-btn" data-category="mid_cap">Flexi &amp; Mid Cap (4)</button>
+      <button type="button" class="mf-filter-btn" data-category="debt">Debt &amp; Arbitrage (2)</button>
+      <button type="button" class="mf-filter-btn" data-category="gold_or_other">Gold &amp; Multi-Asset (2)</button>
+    </div>
+
+    <!-- Prospects Cards Grid -->
+    <div class="mf-prospects-grid" id="mf-prospects-grid">
+      <p class="muted small">Loading top performing mutual fund prospects…</p>
+    </div>
+
+    <!-- Portfolio Rebalance Recommendation Card -->
+    <div class="card" style="margin-top:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+        <div>
+          <h3 style="margin:0 0 4px 0;">Portfolio Rebalancer &amp; Specific Fund Allocations</h3>
+          <p class="muted small" style="margin:0;">Allocates fresh capital into underweight categories using exact top-performing funds (with capital-gains tax awareness).</p>
+        </div>
+      </div>
+      <div class="controls" style="margin-bottom:16px;">
+        <label>Deploy Fresh Capital (₹)
+          <input type="number" id="mf-new-money" value="25000" min="500" step="1000">
+        </label>
+        <button id="mf-plan" class="primary big-btn">Recommend Specific Fund Allocations</button>
+      </div>
+      <div id="mf-output"></div>
+    </div>
+  </section>
+
+  <!-- ================= TRACK RECORD ================= -->
+  <section id="view-track" class="view" aria-label="How it's doing">
+    <div id="gate-card" class="card"></div>
+    <div id="score-cards"></div>
+
+    <h2 class="section-title">Cumulative Performance (Hypothetical Paper Track)</h2>
+    <p class="muted small">Net return % after deducting 0.35% round-trip trading costs (STT, brokerage, exchange fees).</p>
+    <div class="card chart-card">
+      <div id="chart-equity" class="chart" role="img" aria-label="Growth over time"></div>
+      <details class="table-fallback"><summary>Show numbers as a table</summary><div id="table-equity"></div></details>
+    </div>
+
+    <h2 class="section-title">Hit Rate Over Time (Directional Win Rate)</h2>
+    <p class="muted small">Baseline 50% dashed line represents coin-toss benchmark. Target is > 55% consistent hit rate.</p>
+    <div class="card chart-card">
+      <div id="chart-hitrate" class="chart" role="img" aria-label="Correctness over time"></div>
+      <details class="table-fallback"><summary>Show numbers as a table</summary><div id="table-hitrate"></div></details>
+    </div>
+
+    <h2 class="section-title">Model Confidence Calibration Scatter</h2>
+    <p class="muted small">Each dot is one resolved suggestion. Higher confidence should correspond to higher average realized return.</p>
+    <div class="card chart-card">
+      <div id="chart-scatter" class="chart" role="img" aria-label="Confidence versus result"></div>
+      <details class="table-fallback"><summary>Show numbers as a table</summary><div id="table-outcomes"></div></details>
+    </div>
+  </section>
+
+  <!-- ================= PULSE ================= -->
+  <section id="view-pulse" class="view" aria-label="System health">
+    <div id="pulse-cards"></div>
+  </section>
+
+  <!-- ================= MODEL HISTORY ================= -->
+  <section id="view-model" class="view" aria-label="Model history">
+    <div class="card soft">
+      <h3>Champion vs. Challenger Retraining Log</h3>
+      <p class="muted small">Every week the model attempts self-improvement against an out-of-sample test. It must beat the champion on Hit Rate, Sharpe, and Loss Drawdown to earn promotion.</p>
+    </div>
+    <div id="model-output"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot-content">
+    <p><strong>Strict Advisory Lock:</strong> This system only suggests trade ideas and calculates risk-budgeted sizing. It never connects to an order execution API. All trades must be reviewed and manually placed in your broker app.</p>
+    <p class="muted small">Data provided for NSE equities. Past performance is not indicative of future returns.</p>
+  </div>
+</footer>
+
+<div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+<!-- Interactive Chart Modal -->
+<div id="chart-modal" class="chart-modal" style="display:none;" role="dialog" aria-modal="true">
+  <div class="chart-modal-backdrop" id="modal-backdrop"></div>
+  <div class="chart-modal-content">
+    <div class="chart-modal-header">
+      <div>
+        <h3 id="modal-symbol-title" class="modal-title">Live Chart</h3>
+        <p id="modal-symbol-sub" class="muted small" style="margin:2px 0 0">Interactive technical levels & price history</p>
+      </div>
+      <button id="modal-close-btn" class="modal-close-btn" aria-label="Close chart">&times;</button>
+    </div>
+    <div id="modal-chart-body" class="chart-modal-body"></div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=20261024"></script>
+</body>
+</html>

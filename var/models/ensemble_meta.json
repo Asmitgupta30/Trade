@@ -1,0 +1,13 @@
+{
+  "tabular": "lightgbm",
+  "sequence": "lstm",
+  "weights": {
+    "tabular": 0.65,
+    "sequence": 0.35
+  },
+  "positive_threshold": 0.0034999999999999996,
+  "train_hit_rates": {
+    "tabular": 0.593970411727421,
+    "sequence": 0.5109666666666667
+  }
+}
