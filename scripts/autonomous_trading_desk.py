@@ -20,6 +20,12 @@ Permanent Core Invariant: ADVISORY & PAPER TRADING ONLY. Never connects to real 
 
 from __future__ import annotations
 
+import sys
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import json
 import logging
 import os
@@ -47,7 +53,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler(str(ROOT / "var" / "logs" / "autonomous_desk.log")),
+        logging.FileHandler(str(ROOT / "var" / "logs" / "autonomous_desk.log"), encoding="utf-8"),
     ],
 )
 log = logging.getLogger("autonomous_desk")
