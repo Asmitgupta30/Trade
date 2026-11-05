@@ -11,11 +11,14 @@ The two P&L streams are never merged: the UI shows both honestly.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS suggestions (
@@ -151,12 +154,14 @@ class PaperStore:
             if not row:
                 return None
             side = (row["side"] if "side" in row.keys() else "BUY") or "BUY"
+            entry_px = float(row["entry_price"]) if row["entry_price"] else 0.0
+            if entry_px <= 0.0:
+                log.warning("position %s has non-positive entry_price %.2f; aborting division", position_id, entry_px)
+                return 0.0
             if str(side).upper() in ("SELL", "SHORT"):
-                ret_pct = (row["entry_price"] - exit_price) / row["entry_price"] * 100.0 \
-                    - round_trip_cost_pct
+                ret_pct = (entry_px - exit_price) / entry_px * 100.0 - round_trip_cost_pct
             else:
-                ret_pct = (exit_price - row["entry_price"]) / row["entry_price"] * 100.0 \
-                    - round_trip_cost_pct
+                ret_pct = (exit_price - entry_px) / entry_px * 100.0 - round_trip_cost_pct
             self.conn.execute(
                 """UPDATE paper_positions SET status='closed', exit_ts=?, exit_price=?,
                    realized_return_pct=? WHERE position_id=?""",

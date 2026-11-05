@@ -138,3 +138,81 @@ def test_multi_style_strategies_import_and_execution():
     universe_data = {"RELIANCE": df}
     vcp_candidates = screen_vcp_setups(universe_data)
     assert isinstance(vcp_candidates, list)
+
+
+def test_paper_store_zero_entry_price_protection(tmp_path):
+    """PaperStore must not raise ZeroDivisionError if entry_price is zero or invalid."""
+    store = PaperStore(db_path=tmp_path / "zero_price.sqlite3")
+    pos_id = store.open_paper_position(
+        suggestion_id="test_zero_1",
+        symbol="TESTSYM",
+        quantity=10,
+        entry_price=0.0,
+        entry_cost_inr=0.0,
+        entry_dt=datetime.now(timezone.utc),
+        trade_date="2026-11-05",
+        side="BUY",
+    )
+    ret = store.close_paper_position(pos_id, exit_price=100.0, exit_dt=datetime.now(timezone.utc), round_trip_cost_pct=0.35)
+    assert ret == 0.0
+
+
+def test_desk_midnight_rollover(tmp_path, monkeypatch):
+    """Desk must reset daily counters, trade caps, and pre-market flags when calendar date rolls over."""
+    from scripts.autonomous_trading_desk import AutonomousTradingDesk
+    desk = AutonomousTradingDesk(budget_inr=50000.0, risk_pct=1.0)
+    desk.current_trade_date = "2026-11-04"  # Yesterday
+    desk.pre_market_done = True
+    desk.eod_report_generated = True
+    desk.executed_today = [{"symbol": "SBIN"}, {"symbol": "TCS"}, {"symbol": "INFY"}, {"symbol": "RELIANCE"}]
+    desk.traded_symbols_today = {"SBIN", "TCS", "INFY", "RELIANCE"}
+    desk.session_realized_loss_inr = 1500.0
+    desk.symbol_cooldowns = {"SBIN": datetime.now(timezone.utc) + timedelta(minutes=30)}
+
+    # Advance time to 08:30 IST today
+    from common.timeutils import IST
+    fixed_now = datetime(2026, 11, 5, 8, 30, tzinfo=IST)
+    monkeypatch.setattr("scripts.autonomous_trading_desk.now_ist", lambda: fixed_now)
+
+    desk.run_session_step()
+
+    assert desk.current_trade_date == "2026-11-05"
+    assert desk.pre_market_done is False
+    assert desk.eod_report_generated is False
+    assert len(desk.executed_today) == 0
+    assert len(desk.traded_symbols_today) == 0
+    assert desk.session_realized_loss_inr == 0.0
+    assert len(desk.symbol_cooldowns) == 0
+
+
+def test_auto_exit_resilient_to_quote_failure(monkeypatch):
+    """auto_exit_all_intraday must gracefully exit positions even during full network quote failure."""
+    from scripts.autonomous_trading_desk import AutonomousTradingDesk
+    desk = AutonomousTradingDesk(budget_inr=50000.0, risk_pct=1.0)
+    
+    # Mock open position in store
+    pos_id = desk.store.open_paper_position(
+        suggestion_id="test_mock_open",
+        symbol="MOCKSYM",
+        quantity=10,
+        entry_price=500.0,
+        entry_cost_inr=1.5,
+        entry_dt=datetime.now(timezone.utc),
+        trade_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        side="BUY",
+    )
+    desk.trade_meta["MOCKSYM"] = {"stop_loss": 490.0, "target_1": 520.0}
+
+    # Simulate network quote crash
+    def mock_fail_quotes(symbols):
+        raise ConnectionResetError("Yahoo Finance network drop at 15:15 IST")
+    monkeypatch.setattr(desk.client, "get_quotes", mock_fail_quotes)
+
+    # Should NOT throw exception
+    desk.auto_exit_all_intraday()
+
+    # Position in store must now be closed
+    closed_pos = [p for p in desk.store.all_positions() if p["position_id"] == pos_id]
+    assert len(closed_pos) == 1
+    assert closed_pos[0]["status"] == "closed"
+    assert "MOCKSYM" not in desk.trade_meta

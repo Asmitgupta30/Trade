@@ -67,7 +67,9 @@ class AutonomousTradingDesk:
         self.reports_dir.mkdir(parents=True, exist_ok=True)
         self.status_file = ROOT / "var" / "status" / "autonomous_desk_live.json"
         self.status_file.parent.mkdir(parents=True, exist_ok=True)
+        self.state_file = ROOT / "var" / "status" / "desk_state.json"
 
+        self.current_trade_date: str = now_ist().strftime("%Y-%m-%d")
         # Active trade tracking metadata (target_1, target_2, stop_loss, trailing_active, side, action)
         self.trade_meta: dict[str, dict] = {}
         self.executed_today: list[dict] = []
@@ -82,6 +84,108 @@ class AutonomousTradingDesk:
 
         self.eod_report_generated = False
         self.pre_market_done = False
+
+        # Reconcile in-memory state with SQLite and disk cache
+        self.load_or_reconcile_state()
+
+
+    def save_desk_state(self) -> None:
+        """Persist in-memory desk risk state and trade metadata to avoid state wipe on restart."""
+        try:
+            cooldowns_ser = {
+                sym: exp.isoformat() for sym, exp in self.symbol_cooldowns.items()
+            }
+            ser_meta = {}
+            for sym, m in self.trade_meta.items():
+                m_copy = dict(m)
+                if isinstance(m_copy.get("entry_ts"), datetime):
+                    m_copy["entry_ts"] = m_copy["entry_ts"].isoformat()
+                ser_meta[sym] = m_copy
+
+            data = {
+                "current_trade_date": self.current_trade_date,
+                "pre_market_done": self.pre_market_done,
+                "eod_report_generated": self.eod_report_generated,
+                "executed_today": self.executed_today,
+                "traded_symbols_today": sorted(list(self.traded_symbols_today)),
+                "symbol_cooldowns": cooldowns_ser,
+                "session_realized_loss_inr": round(self.session_realized_loss_inr, 2),
+                "trade_meta": ser_meta,
+            }
+            self.state_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        except Exception as exc:
+            log.warning("failed to persist desk state: %s", exc)
+
+    def load_or_reconcile_state(self) -> None:
+        """Recover state from disk and reconcile with SQLite database upon daemon startup."""
+        today = now_ist().strftime("%Y-%m-%d")
+        self.current_trade_date = today
+
+        # 1. Attempt reading desk_state.json
+        if self.state_file.exists():
+            try:
+                data = json.loads(self.state_file.read_text(encoding="utf-8"))
+                if data.get("current_trade_date") == today:
+                    self.pre_market_done = data.get("pre_market_done", False)
+                    self.eod_report_generated = data.get("eod_report_generated", False)
+                    self.executed_today = data.get("executed_today", [])
+                    self.traded_symbols_today = set(data.get("traded_symbols_today", []))
+                    self.session_realized_loss_inr = float(data.get("session_realized_loss_inr", 0.0))
+                    for sym, exp_str in data.get("symbol_cooldowns", {}).items():
+                        try:
+                            self.symbol_cooldowns[sym] = datetime.fromisoformat(exp_str)
+                        except Exception:
+                            pass
+                    for sym, m in data.get("trade_meta", {}).items():
+                        if "entry_ts" in m and isinstance(m["entry_ts"], str):
+                            try:
+                                m["entry_ts"] = datetime.fromisoformat(m["entry_ts"])
+                            except Exception:
+                                m["entry_ts"] = now_ist()
+                        self.trade_meta[sym] = m
+                    log.info("Restored desk state from disk: %d trades executed today, loss: ₹%.2f, %d cooldowns",
+                             len(self.executed_today), self.session_realized_loss_inr, len(self.symbol_cooldowns))
+            except Exception as exc:
+                log.warning("could not parse desk_state.json: %s", exc)
+
+        # 2. Reconcile with SQLite paper_positions for today to prevent risk limit bypass
+        try:
+            today_positions = self.store.positions_for_date(today)
+            for p in today_positions:
+                self.traded_symbols_today.add(p["symbol"])
+                if p["status"] == "closed":
+                    ret = p.get("realized_return_pct")
+                    if ret is not None and ret < 0:
+                        entry_val = float(p["quantity"]) * float(p["entry_price"])
+                        net_loss = abs((ret / 100.0) * entry_val)
+                        if net_loss > self.session_realized_loss_inr:
+                            self.session_realized_loss_inr = max(self.session_realized_loss_inr, round(net_loss, 2))
+
+            opens = self.store.open_positions()
+            for op in opens:
+                sym = op["symbol"]
+                if sym not in self.trade_meta:
+                    entry_px = float(op["entry_price"])
+                    side = (op.get("side") or "BUY").upper()
+                    is_short = side in ("SELL", "SHORT")
+                    self.trade_meta[sym] = {
+                        "position_id": op["position_id"],
+                        "symbol": sym,
+                        "action": "SHORT" if is_short else "BUY",
+                        "side": side,
+                        "entry_price": entry_px,
+                        "shares": op["quantity"],
+                        "stop_loss": round(entry_px * 1.018, 2) if is_short else round(entry_px * 0.982, 2),
+                        "target_1": round(entry_px * 0.965, 2) if is_short else round(entry_px * 1.035, 2),
+                        "target_2": round(entry_px * 0.945, 2) if is_short else round(entry_px * 1.055, 2),
+                        "entry_time": op.get("entry_ts", ""),
+                        "entry_ts": now_ist(),
+                        "trailing_active": False,
+                    }
+        except Exception as exc:
+            log.warning("error reconciling desk state with DB: %s", exc)
+
+        self.save_desk_state()
 
     def can_enter_new_trade(self) -> bool:
         """Evaluate whether new positions are permitted under daily cap and circuit breaker."""
@@ -318,6 +422,7 @@ class AutonomousTradingDesk:
 
                 log.info("OPENED BI-DIRECTIONAL PAPER TRADE: [%s] %s | Qty: %d | Entry: ₹%.2f | SL: ₹%.2f | TGT1: ₹%.2f",
                          action, sym, shares, price, sl, t1)
+                self.save_desk_state()
 
         except Exception as exc:
             log.warning("error scanning opening candidates: %s", exc)
@@ -383,8 +488,9 @@ class AutonomousTradingDesk:
             target_hit = (ltp <= t1) if is_short else (ltp >= t1)
             if target_hit:
                 ret = self.store.close_paper_position(pos_id, ltp, now, cost_pct)
-                pnl_inr = round(pos["quantity"] * (entry_px - ltp), 2) if is_short else round(pos["quantity"] * (ltp - entry_px), 2)
-                log.info("TARGET 1 HIT — CLOSED IN PROFIT: [%s] %s | Entry: ₹%.2f -> Exit: ₹%.2f | P&L: +₹%.2f (+%.2f%%)",
+                entry_val = pos["quantity"] * entry_px
+                pnl_inr = round(((ret or 0.0) / 100.0) * entry_val, 2)
+                log.info("TARGET 1 HIT — CLOSED IN PROFIT: [%s] %s | Entry: ₹%.2f -> Exit: ₹%.2f | Net P&L: +₹%.2f (+%.2f%%)",
                          meta["action"], sym, entry_px, ltp, pnl_inr, (ret or 0.0))
                 self.executed_today.append({
                     "symbol": sym,
@@ -399,14 +505,16 @@ class AutonomousTradingDesk:
                     "exit_time": now.strftime("%H:%M:%S IST"),
                 })
                 self.trade_meta.pop(sym, None)
+                self.save_desk_state()
                 continue
 
             # ---------------- 2. Stop Loss Guard: Honor 1R Capital Preservation ----------------
             sl_hit = (ltp >= sl) if is_short else (ltp <= sl)
             if sl_hit:
                 ret = self.store.close_paper_position(pos_id, ltp, now, cost_pct)
-                pnl_inr = round(pos["quantity"] * (entry_px - ltp), 2) if is_short else round(pos["quantity"] * (ltp - entry_px), 2)
-                log.info("STOP LOSS HIT — PRESERVED CAPITAL: [%s] %s | Entry: ₹%.2f -> Exit: ₹%.2f | P&L: ₹%.2f (%.2f%%)",
+                entry_val = pos["quantity"] * entry_px
+                pnl_inr = round(((ret or 0.0) / 100.0) * entry_val, 2)
+                log.info("STOP LOSS HIT — PRESERVED CAPITAL: [%s] %s | Entry: ₹%.2f -> Exit: ₹%.2f | Net P&L: ₹%.2f (%.2f%%)",
                          meta["action"], sym, entry_px, ltp, pnl_inr, (ret or 0.0))
 
                 # Anti-revenge trading: Apply 60-minute symbol cooldown
@@ -427,6 +535,7 @@ class AutonomousTradingDesk:
                     "exit_time": now.strftime("%H:%M:%S IST"),
                 })
                 self.trade_meta.pop(sym, None)
+                self.save_desk_state()
                 continue
 
             # ---------------- 3. Win-Win Trailing Stop: Ratchet to Breakeven at 50% of Target 1 ----------------
@@ -456,36 +565,47 @@ class AutonomousTradingDesk:
             return
 
         symbols = sorted({p["symbol"] for p in opens})
-        quotes = self.client.get_quotes(symbols)
+        quotes = {}
+        try:
+            quotes = self.client.get_quotes(symbols)
+        except Exception as exc:
+            log.warning("15:15 IST quote fetch failed: %s; falling back to entry prices for exit", exc)
         now = now_ist()
         cost_pct = self.cfg.intraday.round_trip_cost_pct
 
         log.info("15:15 IST AUTO-EXIT TRIGGERED — Closing all %d remaining positions...", len(opens))
         for pos in opens:
-            sym = pos["symbol"]
-            q = quotes.get(sym)
-            px = q.ltp if q and getattr(q, "ltp", None) else pos["entry_price"]
-            side = (pos.get("side") or "BUY").upper()
-            is_short = side in ("SELL", "SHORT")
+            try:
+                sym = pos["symbol"]
+                q = quotes.get(sym)
+                px = q.ltp if q and getattr(q, "ltp", None) and q.ltp > 0 else pos["entry_price"]
+                side = (pos.get("side") or "BUY").upper()
+                is_short = side in ("SELL", "SHORT")
 
-            ret = self.store.close_paper_position(pos["position_id"], px, now, cost_pct)
-            pnl_inr = round(pos["quantity"] * (pos["entry_price"] - px), 2) if is_short else round(pos["quantity"] * (px - pos["entry_price"]), 2)
+                ret = self.store.close_paper_position(pos["position_id"], px, now, cost_pct)
+                entry_val = pos["quantity"] * pos["entry_price"]
+                pnl_inr = round(((ret or 0.0) / 100.0) * entry_val, 2)
 
-            self.executed_today.append({
-                "symbol": sym,
-                "action": "SHORT" if is_short else "BUY",
-                "side": side,
-                "entry_price": pos["entry_price"],
-                "exit_price": px,
-                "quantity": pos["quantity"],
-                "pnl_inr": pnl_inr,
-                "return_pct": ret,
-                "exit_reason": "15:15_AUTO_EXIT",
-                "exit_time": now.strftime("%H:%M:%S IST"),
-            })
-            log.info("AUTO-EXITED: [%s] %s | P&L: ₹%.2f", side, sym, pnl_inr)
+                self.executed_today.append({
+                    "symbol": sym,
+                    "action": "SHORT" if is_short else "BUY",
+                    "side": side,
+                    "entry_price": pos["entry_price"],
+                    "exit_price": px,
+                    "quantity": pos["quantity"],
+                    "pnl_inr": pnl_inr,
+                    "return_pct": ret,
+                    "exit_reason": "15:15_AUTO_EXIT",
+                    "exit_time": now.strftime("%H:%M:%S IST"),
+                })
+                if pnl_inr < 0:
+                    self.session_realized_loss_inr += abs(pnl_inr)
+                log.info("AUTO-EXITED: [%s] %s | Net P&L: ₹%.2f", side, sym, pnl_inr)
+            except Exception as exc:
+                log.exception("failed to auto-exit position %s (%s): %s", pos.get("position_id"), pos.get("symbol"), exc)
 
         self.trade_meta.clear()
+        self.save_desk_state()
 
     def generate_eod_performance_report(self) -> None:
         """15:35 IST: Calculate final Net Gain / Net Loss and compile comprehensive report."""
@@ -518,7 +638,8 @@ class AutonomousTradingDesk:
             is_short = side in ("SELL", "SHORT")
             ret = c.get("realized_return_pct", 0.0) or 0.0
 
-            pnl = round(c["quantity"] * (c["entry_price"] - c["exit_price"]), 2) if is_short else round(c["quantity"] * (c["exit_price"] - c["entry_price"]), 2)
+            entry_val = c["quantity"] * c["entry_price"]
+            pnl = round(((ret or 0.0) / 100.0) * entry_val, 2)
             net_gain_inr += pnl
             total_entry_val += (c["quantity"] * c["entry_price"])
 
@@ -649,6 +770,22 @@ class AutonomousTradingDesk:
     def run_session_step(self) -> None:
         """Single tick step of the trading day clock."""
         ist = now_ist()
+        today_str = ist.strftime("%Y-%m-%d")
+
+        # Midnight / Calendar Date Rollover
+        if today_str != self.current_trade_date:
+            old_date = self.current_trade_date
+            self.current_trade_date = today_str
+            self.pre_market_done = False
+            self.eod_report_generated = False
+            self.executed_today.clear()
+            self.traded_symbols_today.clear()
+            self.session_realized_loss_inr = 0.0
+            self.symbol_cooldowns.clear()
+            self.trade_meta.clear()
+            self.save_desk_state()
+            log.info("MIDNIGHT ROLLOVER: reset daily counters and advanced session from %s to %s", old_date, today_str)
+
         cur_time = ist.time()
 
         # Session intervals in IST

@@ -395,10 +395,37 @@ def get_desk_report(date: str | None = None):
 def suggestions(req: SuggestRequest):
     if req.horizon == "mutual_fund":
         raise HTTPException(400, "use /api/mutual-funds for MF suggestions")
+    today_str = now_ist().strftime("%Y-%m-%d")
+    open_positions = paper.store.open_positions()
+    open_symbols = [p["symbol"] for p in open_positions]
+
+    from features.universe import DEFAULT_UNIVERSE
+    symbol_exposure: dict[str, float] = {}
+    sector_exposure: dict[str, float] = {}
+    for p in open_positions:
+        sym = p["symbol"]
+        qty = float(p.get("quantity") or 0.0)
+        px = float(p.get("entry_price") or 0.0)
+        exp = qty * px
+        symbol_exposure[sym] = symbol_exposure.get(sym, 0.0) + exp
+        sec = DEFAULT_UNIVERSE.get(sym, "General")
+        sector_exposure[sec] = sector_exposure.get(sec, 0.0) + exp
+
+    breaker = paper.breaker_state(budget_ref_inr=req.budget_inr)
+    day_pnl_inr = (breaker.get("day_pnl_pct_of_budget", 0.0) / 100.0) * req.budget_inr
+    week_pnl_inr = (breaker.get("weekly_pnl_pct", 0.0) / 100.0) * req.budget_inr
+
     state = PortfolioState(
+        open_symbols=open_symbols,
+        sector_exposure=sector_exposure,
+        symbol_exposure=symbol_exposure,
         suggestions_today=paper.store.conn.execute(
             "SELECT COUNT(DISTINCT symbol) c FROM paper_positions WHERE trade_date=?",
-            (now_ist().strftime("%Y-%m-%d"),)).fetchone()["c"],
+            (today_str,)).fetchone()["c"],
+        day_pnl_inr=day_pnl_inr,
+        week_pnl_inr=week_pnl_inr,
+        consecutive_losing_days=breaker.get("consecutive_losing_days", 0),
+        current_drawdown_pct=breaker.get("current_drawdown_pct", 0.0),
     )
     # Determine current market regime for risk-gating
     current_regime = "risk-on"
