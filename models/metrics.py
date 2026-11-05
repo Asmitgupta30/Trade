@@ -61,10 +61,12 @@ def summarize_suggestion_outcomes(outcomes: list[dict]) -> dict:
     rets = pd.Series([o["return_pct"] for o in outcomes], dtype=float) / 100.0
     correct = [bool(o["direction_ok"]) for o in outcomes]
     eq = equity_curve(rets)
+    hr = hit_rate(correct)
+    sh = sharpe_ratio(rets)
     return {
         "n": len(outcomes),
-        "hit_rate": round(hit_rate(correct), 4),
-        "sharpe": round(sharpe_ratio(rets), 3),
+        "hit_rate": None if (hr is None or np.isnan(hr)) else round(float(hr), 4),
+        "sharpe": None if (sh is None or np.isnan(sh)) else round(float(sh), 3),
         "max_drawdown_pct": round(max_drawdown_pct(eq), 2),
         "total_return_pct": round(float((eq.iloc[-1] - 1.0) * 100), 2),
     }
