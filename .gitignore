@@ -37,6 +37,7 @@ var/barstore/*
 var/cache/ohlcv/*
 var/cache/adjusted_bhav/*
 var/cache/mf/*
+var/cache/scrip_master.json
 var/logs/*
 !var/logs/.gitkeep
 var/status/*
